@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Game</title>
+
+<style>
+    body {
+        font-family: Arial;
+        background: linear-gradient(to right, #4facfe, #00f2fe);
+        text-align: center;
+        color: white;
+        transition: background 0.3s;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        margin-top: 40px;
+        background: rgba(0,0,0,0.5);
+        padding: 20px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    button {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 18px;
+    }
+
+    #startBtn {
+        width: 70%;
+        max-width: 300px;
+        margin: 30px auto;
+        background: yellow;
+        color: black;
+        font-size: 22px;
+        font-weight: bold;
+        padding: 15px;
+    }
+
+    .credit {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.4);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #fff;
+        font-weight: bold;
+    }
+
+    #progress {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.4);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    #wrongMsg, #correctMsg {
+        display:none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.7);
+        padding: 20px 30px;
+        border-radius: 10px;
+        font-size: 26px;
+        font-weight: bold;
+        color: white;
+        width: 80%;
+        max-width: 300px;
+        text-align: center;
+    }
+
+    .wrongFlash {
+        background: red !important;
+    }
+
+    .correctFlash {
+        background: #00c853 !important;
+    }
+
+    @media (max-width: 480px) {
+        h2 {
+            font-size: 20px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px;
+        }
+        #startBtn {
+            font-size: 20px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="progress">السؤال 1 من 30</div>
+
+<div id="wrongMsg">إجابة خاطئة</div>
+<div id="correctMsg">إجابة صحيحة</div>
+
+<button id="startBtn">ابدأ اللعبة</button>
+
+<div class="container" style="display:none;">
+    <h2 id="question">السؤال هنا</h2>
+    <div id="answers"></div>
+    <h3>الوقت: <span id="time">10</span></h3>
+    <h3 id="score"></h3>
+</div>
+
+<div class="credit">Made by Abdelrahman Karam Mohamed</div>
+
+<audio id="tickSound" src="mixkit-tick-tock-clock-close-up-1059.wav"></audio>
+<audio id="correctSound" src="tuomas_data-the-correct-answer-33-183620.mp3"></audio>
+<audio id="wrongSound" src="eritnhut1992-buzzer-or-wrong-answer-20582.mp3"></audio>
+
+<script>
+const questions = [
+    { q: "ما عاصمة السعودية؟", a: ["جدة", "الرياض", "مكة", "الدمام"], correct: 1 },
+    { q: "ما هو أكبر كوكب في المجموعة الشمسية؟", a: ["الأرض", "المشتري", "زحل", "المريخ"], correct: 1 },
+    { q: "من هو مخترع المصباح الكهربائي؟", a: ["أديسون", "نيوتن", "أينشتاين", "تسلا"], correct: 0 },
+    { q: "كم عدد قارات العالم؟", a: ["5", "6", "7", "8"], correct: 2 },
+    { q: "ما هي عاصمة مصر؟", a: ["القاهرة", "الإسكندرية", "المنصورة", "أسوان"], correct: 0 },
+    { q: "ما الحيوان الأسرع في العالم؟", a: ["الفهد", "الأسد", "النمر", "الغزال"], correct: 0 },
+    { q: "كم 5 + 3؟", a: ["6", "7", "8", "9"], correct: 2 },
+    { q: "ما هو أكبر محيط في العالم؟", a: ["الأطلسي", "الهندي", "الهادئ", "المتجمد"], correct: 2 },
+    { q: "من هو أول إنسان صعد إلى القمر؟", a: ["نيل أرمسترونغ", "يوري غاغارين", "مايكل كولينز", "باز ألدرين"], correct: 0 },
+    { q: "ما هي لغة اليابان الرسمية؟", a: ["الصينية", "الكورية", "اليابانية", "الإنجليزية"], correct: 2 },
+];
+
+let current = 0;
+let score = 0;
+let time = 10;
+let timer;
+
+const startBtn = document.getElementById("startBtn");
+const container = document.querySelector(".container");
+const questionEl = document.getElementById("question");
+const answersEl = document.getElementById("answers");
+const timeEl = document.getElementById("time");
+const scoreEl = document.getElementById("score");
+const tickSound = document.getElementById("tickSound");
+const correctSound = document.getElementById("correctSound");
+const wrongSound = document.getElementById("wrongSound");
+const progress = document.getElementById("progress");
+const wrongMsg = document.getElementById("wrongMsg");
+const correctMsg = document.getElementById("correctMsg");
+
+startBtn.onclick = () => {
+
+    // تفعيل الصوت على الموبايل
+    tickSound.volume = 0;
+    correctSound.volume = 0;
+    wrongSound.volume = 0;
+
+    tickSound.play().then(() => tickSound.pause());
+    correctSound.play().then(() => correctSound.pause());
+    wrongSound.play().then(() => wrongSound.pause());
+
+    setTimeout(() => {
+        tickSound.volume = 1;
+        correctSound.volume = 1;
+        wrongSound.volume = 1;
+    }, 200);
+
+    startBtn.style.display = "none";
+    container.style.display = "block";
+    loadQuestion();
+};
+
+function loadQuestion() {
+    clearInterval(timer);
+    time = 10;
+    timeEl.textContent = time;
+
+    progress.textContent = "السؤال " + (current + 1);
+
+    let q = questions[current];
+    questionEl.textContent = q.q;
+    answersEl.innerHTML = "";
+
+    q.a.forEach((answer, index) => {
+        let btn = document.createElement("button");
+        btn.textContent = answer;
+        btn.onclick = () => checkAnswer(index);
+        answersEl.appendChild(btn);
+    });
+
+    timer = setInterval(() => {
+        time--;
+        timeEl.textContent = time;
+
+        tickSound.currentTime = 0;
+        tickSound.play();
+
+        if (time === 0) {
+            nextQuestion();
+        }
+    }, 1000);
+}
+
+function checkAnswer(index) {
+    clearInterval(timer);
+
+    if (index === questions[current].correct) {
+
+        score++;
+        correctSound.currentTime = 0;
+        correctSound.play();
+
+        correctMsg.style.display = "block";
+        document.body.classList.add("correctFlash");
+
+        setTimeout(() => {
+            correctMsg.style.display = "none";
+            document.body.classList.remove("correctFlash");
+            nextQuestion();
+        }, 1000);
+
+    } else {
+
+        wrongSound.currentTime = 0;
+        wrongSound.play();
+
+        wrongMsg.style.display = "block";
+        document.body.classList.add("wrongFlash");
+
+        setTimeout(() => {
+            wrongMsg.style.display = "none";
+            document.body.classList.remove("wrongFlash");
+            nextQuestion();
+        }, 1000);
+    }
+}
+
+function nextQuestion() {
+    current++;
+
+    if (current < questions.length) {
+        loadQuestion();
+    } else {
+        showResult();
+    }
+}
+
+function showResult() {
+    questionEl.textContent = "خلصت اللعبة 🎉";
+    answersEl.innerHTML = "";
+    scoreEl.textContent = "نتيجتك: " + score + " / " + questions.length;
+}
+</script>
+
+</body>
+</html>
